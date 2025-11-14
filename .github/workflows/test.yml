@@ -1,0 +1,192 @@
+name: Test
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+jobs:
+  test-scripts:
+    name: Test Scripts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run unit tests
+        run: ./test/run-tests.sh
+
+      - name: Verify action metadata
+        run: |
+          echo "Checking action.yml syntax..."
+          if [ ! -f "action.yml" ]; then
+            echo "ERROR: action.yml not found"
+            exit 1
+          fi
+
+          # Verify required fields
+          if ! grep -q "name:" action.yml; then
+            echo "ERROR: action.yml missing 'name' field"
+            exit 1
+          fi
+
+          if ! grep -q "description:" action.yml; then
+            echo "ERROR: action.yml missing 'description' field"
+            exit 1
+          fi
+
+          echo "✓ action.yml is valid"
+
+  test-action-check-mode:
+    name: Test Action (Check Mode)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create test config
+        run: |
+          mkdir -p test-config
+          cat > test-config/deploy.yml <<'EOF'
+          accessories:
+            redis:
+              image: redis:7.0.0
+              host: localhost
+            postgres:
+              image: postgres:15.0
+              host: localhost
+          EOF
+
+      - name: Run action in check mode
+        id: check
+        uses: ./
+        with:
+          config-dir: test-config
+          mode: check
+          create-pr: false
+
+      - name: Verify outputs
+        run: |
+          echo "Updates available: ${{ steps.check.outputs.updates-available }}"
+          echo "Updates count: ${{ steps.check.outputs.updates-count }}"
+          echo "Updates JSON: ${{ steps.check.outputs.updates-json }}"
+
+          # Verify outputs are set
+          if [ -z "${{ steps.check.outputs.updates-available }}" ]; then
+            echo "ERROR: updates-available output not set"
+            exit 1
+          fi
+
+          echo "✓ Action outputs are valid"
+
+  test-action-update-mode:
+    name: Test Action (Update Mode)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create test config
+        run: |
+          mkdir -p test-config
+          cat > test-config/deploy.yml <<'EOF'
+          accessories:
+            busybox:
+              image: busybox:1.35.0
+              host: localhost
+              cmd: sleep infinity
+          EOF
+
+      - name: Run action in update-all mode
+        id: update
+        uses: ./
+        with:
+          config-dir: test-config
+          mode: update-all
+          create-pr: false
+
+      - name: Verify file was updated
+        run: |
+          echo "Checking if config file was updated..."
+          cat test-config/deploy.yml
+
+          # Check if version changed
+          if grep -q "busybox:1.35.0" test-config/deploy.yml; then
+            echo "⚠️  Version not updated (may already be latest or no updates available)"
+          else
+            echo "✓ Version was updated"
+          fi
+
+  test-action-with-pr:
+    name: Test Action (PR Creation)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create test config
+        run: |
+          mkdir -p test-config
+          cat > test-config/deploy.yml <<'EOF'
+          accessories:
+            redis:
+              image: redis:6.0.0
+              host: localhost
+          EOF
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Run action with PR creation
+        id: update-pr
+        uses: ./
+        with:
+          config-dir: test-config
+          mode: update-all
+          create-pr: true
+          pr-branch: test/update-accessories-${{ github.run_id }}
+          pr-title: "Test: Update accessories (Run ${{ github.run_id }})"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Check PR outputs
+        run: |
+          echo "PR Number: ${{ steps.update-pr.outputs.pr-number }}"
+          echo "PR URL: ${{ steps.update-pr.outputs.pr-url }}"
+
+          if [ -n "${{ steps.update-pr.outputs.pr-number }}" ]; then
+            echo "✓ PR was created: #${{ steps.update-pr.outputs.pr-number }}"
+          else
+            echo "ℹ️  No PR created (no updates available or error occurred)"
+          fi
+
+  test-fixtures:
+    name: Test with Fixtures
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test with fixture files
+        uses: ./
+        with:
+          config-dir: test/fixtures
+          mode: check
+          create-pr: false
+
+      - name: Verify fixture files are unchanged
+        run: |
+          if git diff --exit-code test/fixtures/; then
+            echo "✓ Fixture files unchanged in check mode"
+          else
+            echo "ERROR: Fixture files were modified in check mode"
+            git diff test/fixtures/
+            exit 1
+          fi

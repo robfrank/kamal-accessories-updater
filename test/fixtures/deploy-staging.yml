@@ -1,0 +1,41 @@
+# Sample Kamal staging deployment configuration for testing
+
+service: myapp-staging
+image: myapp/app
+
+servers:
+  web:
+    hosts:
+      - 192.168.0.2
+    labels:
+      traefik.http.routers.myapp-staging.rule: Host(`staging.example.com`)
+
+registry:
+  server: ghcr.io
+  username: user
+  password:
+    - GITHUB_TOKEN
+
+accessories:
+  redis:
+    image: redis:7.0.0@sha256:d581aded52343c461f32e4a48125879ed2596291c3c3dea9bc8c0c7e6e1e8f3c
+    host: 192.168.0.2
+    port: 6379
+    env:
+      clear:
+        REDIS_MAXMEMORY: "256mb"
+    directories:
+      - data:/data
+
+  postgres:
+    image: postgres:14.5
+    host: 192.168.0.2
+    port: 5432
+    env:
+      secret:
+        - POSTGRES_PASSWORD
+      clear:
+        POSTGRES_USER: myapp_staging
+        POSTGRES_DB: myapp_staging
+    directories:
+      - data:/var/lib/postgresql/data

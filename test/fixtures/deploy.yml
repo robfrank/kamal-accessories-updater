@@ -1,0 +1,47 @@
+# Sample Kamal deployment configuration for testing
+# This file contains accessories with specific versions for testing the updater
+
+service: myapp
+image: myapp/app
+
+servers:
+  web:
+    hosts:
+      - 192.168.0.1
+    labels:
+      traefik.http.routers.myapp.rule: Host(`example.com`)
+
+registry:
+  server: ghcr.io
+  username: user
+  password:
+    - GITHUB_TOKEN
+
+accessories:
+  redis:
+    image: redis:7.0.0
+    host: 192.168.0.1
+    port: 6379
+    env:
+      clear:
+        REDIS_MAXMEMORY: "512mb"
+    directories:
+      - data:/data
+
+  postgres:
+    image: postgres:15.0
+    host: 192.168.0.1
+    port: 5432
+    env:
+      secret:
+        - POSTGRES_PASSWORD
+      clear:
+        POSTGRES_USER: myapp
+        POSTGRES_DB: myapp_production
+    directories:
+      - data:/var/lib/postgresql/data
+
+  busybox:
+    image: busybox:1.35.0
+    host: 192.168.0.1
+    cmd: sleep infinity
