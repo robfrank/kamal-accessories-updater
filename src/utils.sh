@@ -278,7 +278,7 @@ update_deploy_file() {
         fi
 
         # If we're in the right accessory section, look for the image line
-        if $in_accessory && [[ "$line" =~ image:[[:space:]]*(.*) ]]; then
+        if $in_accessory && [[ "$line" =~ ^[[:space:]]+image:[[:space:]]*(.*) ]]; then
             local image_line="${BASH_REMATCH[1]}"
 
             # Extract image name (everything before :version@sha256...)
