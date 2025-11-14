@@ -300,7 +300,7 @@ get_image_sha256_ghcr() {
     fi
 
     # Extract digest - try config.digest first, then fallback to other fields
-    local digest=$(echo "$manifest" | jq -r '.config.digest // .digest // empty' 2>/dev/null)
+    local digest=$(echo "$manifest" | jq -r '.config.digest // empty' 2>/dev/null)
 
     if [ -z "$digest" ]; then
         digest="unknown"
