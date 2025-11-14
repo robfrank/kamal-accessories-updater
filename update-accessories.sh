@@ -6,6 +6,12 @@
 # output_format: "table" (default), "json", or "csv"
 # update: Update deploy files with new versions
 
+# Check for required dependencies
+if ! command -v jq &> /dev/null; then
+    echo "Error: jq is required but not installed. Please install jq to use this script." >&2
+    exit 1
+fi
+
 OUTPUT_FORMAT="${1:-table}"
 CONFIG_DIR="config"
 CACHE_DIR="/tmp/docker-registry-cache"
@@ -13,6 +19,12 @@ CACHE_TTL=3600  # 1 hour cache
 UPDATE_MODE=false
 UPDATE_ALL=false
 JSON_ITEMS=()  # Array to collect JSON items for update processing
+
+# Validate config directory exists
+if [ ! -d "$CONFIG_DIR" ]; then
+    echo "Error: Config directory '$CONFIG_DIR' not found." >&2
+    exit 1
+fi
 
 # Check if update mode is requested
 if [ "$OUTPUT_FORMAT" = "update" ]; then
@@ -190,7 +202,7 @@ get_image_sha256() {
 
     # Check cache
     if [ -f "$cache_file" ]; then
-        local file_age=$(($(date +%s) - $(stat -f%m "$cache_file" 2>/dev/null || echo 0)))
+        local file_age=$(($(date +%s) - $(stat -c%Y "$cache_file" 2>/dev/null || stat -f%m "$cache_file" 2>/dev/null || echo 0)))
         if [ $file_age -lt $CACHE_TTL ]; then
             cat "$cache_file"
             return 0
@@ -201,15 +213,21 @@ get_image_sha256() {
     local api_url="https://hub.docker.com/v2/repositories/${namespace}/${repo_name}/tags/${tag}"
     local tag_info=$(curl -s "$api_url" 2>/dev/null)
 
+    # Validate JSON response
+    if ! echo "$tag_info" | jq empty 2>/dev/null; then
+        echo "unknown"
+        return 1
+    fi
+
     # Extract digest from tag info - it's in the "images" array
-    local digest=$(echo "$tag_info" | grep -o '"digest":"[^"]*"' | head -1 | cut -d'"' -f4)
+    local digest=$(echo "$tag_info" | jq -r '.images[0].digest // empty' 2>/dev/null)
 
     if [ -z "$digest" ]; then
         # If Docker Hub API doesn't have it, try to get it from the registry
         # This requires a different approach - use curl with manifest request
         digest=$(curl -s -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
             "https://registry-1.docker.io/v2/${namespace}/${repo_name}/manifests/${tag}" 2>/dev/null | \
-            grep -o '"config":\s*{[^}]*"digest":"[^"]*"' | cut -d'"' -f6)
+            jq -r '.config.digest // empty' 2>/dev/null)
     fi
 
     if [ -z "$digest" ]; then
@@ -244,7 +262,7 @@ get_latest_version() {
 
     # Check cache
     if [ -f "$cache_file" ]; then
-        local file_age=$(($(date +%s) - $(stat -f%m "$cache_file" 2>/dev/null || echo 0)))
+        local file_age=$(($(date +%s) - $(stat -c%Y "$cache_file" 2>/dev/null || stat -f%m "$cache_file" 2>/dev/null || echo 0)))
         if [ $file_age -lt $CACHE_TTL ]; then
             cat "$cache_file"
             return 0
@@ -255,8 +273,14 @@ get_latest_version() {
     local api_url="https://hub.docker.com/v2/repositories/${namespace}/${repo_name}/tags"
     local tags_json=$(curl -s "$api_url?page_size=100" 2>/dev/null)
 
+    # Validate JSON response
+    if ! echo "$tags_json" | jq empty 2>/dev/null; then
+        echo "unknown"
+        return 1
+    fi
+
     # Extract tag names and filter to only semantic versions
-    local all_tags=$(echo "$tags_json" | grep -o '"name":"[^"]*"' | cut -d'"' -f4)
+    local all_tags=$(echo "$tags_json" | jq -r '.results[]?.name // empty' 2>/dev/null)
 
     local latest_tag=""
     local latest_version=""
@@ -438,13 +462,13 @@ if [ "$UPDATE_MODE" = true ] && [ -n "$JSON_TEMP_FILE" ] && [ -f "$JSON_TEMP_FIL
 
     # Process each item from temp file
     while IFS= read -r json_obj; do
-        # Extract fields using grep
-        file=$(echo "$json_obj" | grep -o '"file": "[^"]*"' | cut -d'"' -f4)
-        accessory=$(echo "$json_obj" | grep -o '"accessory": "[^"]*"' | cut -d'"' -f4)
-        image=$(echo "$json_obj" | grep -o '"image": "[^"]*"' | cut -d'"' -f4)
-        version=$(echo "$json_obj" | grep -o '"version": "[^"]*"' | cut -d'"' -f4)
-        latest_version=$(echo "$json_obj" | grep -o '"latest_version": "[^"]*"' | cut -d'"' -f4)
-        update_available=$(echo "$json_obj" | grep -o '"update_available": [^}]*' | cut -d' ' -f2)
+        # Extract fields using jq
+        file=$(echo "$json_obj" | jq -r '.file' 2>/dev/null)
+        accessory=$(echo "$json_obj" | jq -r '.accessory' 2>/dev/null)
+        image=$(echo "$json_obj" | jq -r '.image' 2>/dev/null)
+        version=$(echo "$json_obj" | jq -r '.version' 2>/dev/null)
+        latest_version=$(echo "$json_obj" | jq -r '.latest_version' 2>/dev/null)
+        update_available=$(echo "$json_obj" | jq -r '.update_available' 2>/dev/null)
 
         if [ "$update_available" = "true" ]; then
             # Construct full file path
