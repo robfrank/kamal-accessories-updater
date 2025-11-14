@@ -6,18 +6,24 @@
 **Comment**: Docker Hub digest extraction via grep is fragile; JSON parsing tool like `jq` would be more robust.
 
 **Action**: Replaced all `grep`/`cut`-based JSON parsing with `jq` for:
-- Docker Hub API responses in `get_image_sha256()` (lines 223, 228)
-- Tag listing in `get_latest_version()` (line 283)
-- JSON field extraction in update processing (lines 442-447)
+- Docker Hub API responses in `get_image_sha256()`
+- Tag listing in `get_latest_version()`
+- JSON field extraction in update processing
+- Added jq dependency check at script startup
 
-**Files modified**: `update-accessories.sh`
+**Files modified**:
+- `update-accessories.sh` (standalone script)
+- `src/utils.sh` (modular structure)
+- `src/check-updates.sh` (added jq dependency check)
 
 ### 2. ✅ Cross-Platform Compatibility
 **Comment**: Not explicitly mentioned in PR, but discovered during review.
 
 **Action**: Fixed `stat` command to support both Linux (`stat -c%Y`) and macOS (`stat -f%m`) for cache file age detection.
 
-**Files modified**: `update-accessories.sh` (lines 193, 265)
+**Files modified**:
+- `update-accessories.sh` (standalone script)
+- `src/utils.sh` (modular structure - uses get_cache_age() helper function)
 
 ### 3. ✅ Input Validation and Error Handling
 **Comment**: Not explicitly mentioned in PR, but critical for robustness.
@@ -28,7 +34,9 @@
 - JSON response validation for Docker Hub API calls
 - Better error messages
 
-**Files modified**: `update-accessories.sh`
+**Files modified**:
+- `update-accessories.sh` (standalone script)
+- `src/check-updates.sh` (modular structure)
 
 ### 4. ✅ Configuration Issues
 **Comment**: Not in PR review, but found critical issues.
@@ -87,3 +95,11 @@
 **Rejected**: 4 comments that were either outside scope, intentional design decisions, referenced non-existent files, or cosmetic issues.
 
 The changes significantly improve the robustness and reliability of the script by using proper JSON parsing tools and adding comprehensive error handling.
+
+## Implementation Notes
+
+These improvements have been applied to both:
+1. **Standalone script**: `update-accessories.sh` (original simple implementation)
+2. **Modular structure**: `src/check-updates.sh` and `src/utils.sh` (GitHub Action implementation)
+
+Both implementations now use `jq` for JSON parsing, have proper error handling, and include dependency checks.

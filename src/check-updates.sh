@@ -6,6 +6,12 @@
 
 set -e
 
+# Check for required dependencies
+if ! command -v jq &> /dev/null; then
+    echo "ERROR: jq is required but not installed. Please install jq to use this script." >&2
+    exit 1
+fi
+
 # Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

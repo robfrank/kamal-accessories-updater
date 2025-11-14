@@ -131,15 +131,21 @@ get_image_sha256() {
     local api_url="https://hub.docker.com/v2/repositories/${namespace}/${repo_name}/tags/${tag}"
     local tag_info=$(curl -s "$api_url" 2>/dev/null)
 
+    # Validate JSON response
+    if ! echo "$tag_info" | jq empty 2>/dev/null; then
+        echo "unknown"
+        return 1
+    fi
+
     # Extract digest from tag info - it's in the "images" array
-    local digest=$(echo "$tag_info" | grep -o '"digest":"[^"]*"' | head -1 | cut -d'"' -f4)
+    local digest=$(echo "$tag_info" | jq -r '.images[0].digest // empty' 2>/dev/null)
 
     if [ -z "$digest" ]; then
         # If Docker Hub API doesn't have it, try to get it from the registry
         # This requires a different approach - use curl with manifest request
         digest=$(curl -s -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
             "https://registry-1.docker.io/v2/${namespace}/${repo_name}/manifests/${tag}" 2>/dev/null | \
-            grep -o '"config":\s*{[^}]*"digest":"[^"]*"' | cut -d'"' -f6)
+            jq -r '.config.digest // empty' 2>/dev/null)
     fi
 
     if [ -z "$digest" ]; then
@@ -185,8 +191,14 @@ get_latest_version() {
     local api_url="https://hub.docker.com/v2/repositories/${namespace}/${repo_name}/tags"
     local tags_json=$(curl -s "$api_url?page_size=100" 2>/dev/null)
 
+    # Validate JSON response
+    if ! echo "$tags_json" | jq empty 2>/dev/null; then
+        echo "unknown"
+        return 1
+    fi
+
     # Extract tag names and filter to only semantic versions
-    local all_tags=$(echo "$tags_json" | grep -o '"name":"[^"]*"' | cut -d'"' -f4)
+    local all_tags=$(echo "$tags_json" | jq -r '.results[]?.name // empty' 2>/dev/null)
 
     local latest_tag=""
     local latest_version=""
