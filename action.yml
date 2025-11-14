@@ -1,0 +1,93 @@
+name: 'Kamal Accessories Updater'
+description: 'Automatically check for and update Kamal accessories to their latest versions'
+branding:
+  icon: 'arrow-up-circle'
+  color: 'blue'
+
+inputs:
+  config-dir:
+    description: 'Directory containing Kamal deploy*.yml configuration files'
+    required: false
+    default: 'config'
+  mode:
+    description: 'Update mode: "check" (only check for updates), "update" (prompt for each), or "update-all" (auto-update all)'
+    required: false
+    default: 'update-all'
+  create-pr:
+    description: 'Whether to create a pull request with the updates'
+    required: false
+    default: 'true'
+  pr-branch:
+    description: 'Branch name for the pull request'
+    required: false
+    default: 'update/kamal-accessories'
+  pr-title:
+    description: 'Title for the pull request'
+    required: false
+    default: 'chore: bump Kamal accessories versions'
+  pr-body:
+    description: 'Body text for the pull request'
+    required: false
+    default: 'This PR updates Kamal accessories to their latest available versions on Docker Hub.'
+  pr-labels:
+    description: 'Comma-separated list of labels to add to the pull request'
+    required: false
+    default: 'dependencies'
+  github-token:
+    description: 'GitHub token for creating pull requests'
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  updates-available:
+    description: 'Whether any updates are available (true/false)'
+    value: ${{ steps.check.outputs.updates-available }}
+  updates-count:
+    description: 'Number of updates available'
+    value: ${{ steps.check.outputs.updates-count }}
+  updates-json:
+    description: 'JSON array of all updates'
+    value: ${{ steps.check.outputs.updates-json }}
+  pr-number:
+    description: 'Pull request number if created'
+    value: ${{ steps.create-pr.outputs.pull-request-number }}
+  pr-url:
+    description: 'Pull request URL if created'
+    value: ${{ steps.create-pr.outputs.pull-request-url }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check for updates
+      id: check
+      shell: bash
+      run: |
+        set -e
+
+        # Run the update checker script
+        "${{ github.action_path }}/src/check-updates.sh" \
+          "${{ inputs.config-dir }}" \
+          "${{ inputs.mode }}"
+
+    - name: Create Pull Request
+      id: create-pr
+      if: inputs.create-pr == 'true' && steps.check.outputs.updates-available == 'true'
+      uses: peter-evans/create-pull-request@v7.0.8
+      with:
+        token: ${{ inputs.github-token }}
+        branch: ${{ inputs.pr-branch }}
+        title: ${{ inputs.pr-title }}
+        body: |
+          ${{ inputs.pr-body }}
+
+          ## Updates Applied
+
+          ${{ steps.check.outputs.updates-summary }}
+
+          ---
+          *Automated by [Kamal Accessories Updater](https://github.com/robfrank/kamal-accessories-updater)*
+        labels: ${{ inputs.pr-labels }}
+        commit-message: |
+          chore: update Kamal accessories versions
+
+          ${{ steps.check.outputs.updates-summary }}
