@@ -71,7 +71,7 @@ while IFS= read -r file; do
             fi
 
             # Match image lines
-            if [[ "$line" =~ "image:" ]]; then
+            if [[ "$line" =~ ^[[:space:]]+image: ]]; then
                 # Extract the image part after "image:"
                 image_full=$(echo "$line" | sed 's/.*image:[[:space:]]*//')
 
