@@ -25,7 +25,7 @@ name: Update Kamal Accessories
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 8 * * 0"  # Every Sunday at 8 AM UTC
+    - cron: "0 8 * * 0" # Every Sunday at 8 AM UTC
 
 jobs:
   update:
@@ -47,16 +47,16 @@ jobs:
 
 ## Inputs
 
-| Input | Description | Required | Default |
-|-------|-------------|----------|---------|
-| `config-dir` | Directory containing Kamal `deploy*.yml` files | No | `config` |
-| `mode` | Update mode: `check`, `update`, or `update-all` | No | `update-all` |
-| `create-pr` | Whether to create a pull request with updates | No | `true` |
-| `pr-branch` | Branch name for the pull request | No | `update/kamal-accessories` |
-| `pr-title` | Title for the pull request | No | `chore: bump Kamal accessories versions` |
-| `pr-body` | Body text for the pull request | No | See action.yml |
-| `pr-labels` | Comma-separated list of labels for the PR | No | `dependencies` |
-| `github-token` | GitHub token for creating pull requests | No | `${{ github.token }}` |
+| Input          | Description                                     | Required | Default                                  |
+| -------------- | ----------------------------------------------- | -------- | ---------------------------------------- |
+| `config-dir`   | Directory containing Kamal `deploy*.yml` files  | No       | `config`                                 |
+| `mode`         | Update mode: `check`, `update`, or `update-all` | No       | `update-all`                             |
+| `create-pr`    | Whether to create a pull request with updates   | No       | `true`                                   |
+| `pr-branch`    | Branch name for the pull request                | No       | `update/kamal-accessories`               |
+| `pr-title`     | Title for the pull request                      | No       | `chore: bump Kamal accessories versions` |
+| `pr-body`      | Body text for the pull request                  | No       | See action.yml                           |
+| `pr-labels`    | Comma-separated list of labels for the PR       | No       | `dependencies`                           |
+| `github-token` | GitHub token for creating pull requests         | No       | `${{ github.token }}`                    |
 
 ### Mode Options
 
@@ -66,13 +66,13 @@ jobs:
 
 ## Outputs
 
-| Output | Description |
-|--------|-------------|
+| Output              | Description                                        |
+| ------------------- | -------------------------------------------------- |
 | `updates-available` | Whether any updates are available (`true`/`false`) |
-| `updates-count` | Number of updates available |
-| `updates-json` | JSON array of all updates |
-| `pr-number` | Pull request number if created |
-| `pr-url` | Pull request URL if created |
+| `updates-count`     | Number of updates available                        |
+| `updates-json`      | JSON array of all updates                          |
+| `pr-number`         | Pull request number if created                     |
+| `pr-url`            | Pull request URL if created                        |
 
 ## Usage Examples
 
@@ -169,10 +169,10 @@ The action supports multiple container registries:
 ```yaml
 accessories:
   redis:
-    image: redis:7.0.0                    # Official image (implicit docker.io)
+    image: redis:7.0.0 # Official image (implicit docker.io)
 
   custom:
-    image: myorg/myapp:1.0.0             # Organization image
+    image: myorg/myapp:1.0.0 # Organization image
 
   explicit:
     image: docker.io/library/postgres:15 # Explicit registry prefix
@@ -199,19 +199,20 @@ accessories:
   with:
     config-dir: config
   env:
-    GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Use GitHub token for GHCR access
+    GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Use GitHub token for GHCR access
 ```
 
 **For private GHCR images**, create a GitHub PAT with `read:packages` scope:
 
 ```yaml
 env:
-  GHCR_TOKEN: ${{ secrets.GHCR_PAT }}  # Use custom PAT for private images
+  GHCR_TOKEN: ${{ secrets.GHCR_PAT }} # Use custom PAT for private images
 ```
 
 ### Other Registries
 
 The action includes detection for:
+
 - **Google Container Registry** (gcr.io)
 - **Quay.io** (quay.io)
 - **Generic OCI registries** (basic support)
@@ -250,6 +251,7 @@ accessories:
 ```
 
 The action will:
+
 - Automatically detect the registry from the image name
 - Preserve your existing configuration structure
 - Update only the image version
@@ -259,6 +261,7 @@ The action will:
 ## Caching
 
 The action caches registry API responses for 1 hour to:
+
 - Reduce API calls
 - Improve performance
 - Avoid rate limiting
@@ -326,7 +329,7 @@ Contributions are welcome! Please:
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the ASL 2.0 License - see the [LICENSE](LICENSE) file for details.
 
 ## Related Resources
 
