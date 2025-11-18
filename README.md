@@ -37,7 +37,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Update Kamal accessories
-        uses: robfrank/kamal-accessories-updater@v1
+        uses: robfrank/kamal-accessories-updater@v25
         with:
           config-dir: config
           mode: update-all
@@ -82,7 +82,7 @@ Check for updates and create a PR:
 
 ```yaml
 - name: Update accessories
-  uses: robfrank/kamal-accessories-updater@v1
+  uses: robfrank/kamal-accessories-updater@v25
   with:
     config-dir: config
 ```
@@ -92,7 +92,7 @@ Check for updates and create a PR:
 ```yaml
 - name: Check for updates
   id: check
-  uses: robfrank/kamal-accessories-updater@v1
+  uses: robfrank/kamal-accessories-updater@v25
   with:
     config-dir: config
     mode: check
@@ -109,7 +109,7 @@ Check for updates and create a PR:
 
 ```yaml
 - name: Update accessories
-  uses: robfrank/kamal-accessories-updater@v1
+  uses: robfrank/kamal-accessories-updater@v25
   with:
     config-dir: config
     mode: update-all
@@ -128,7 +128,7 @@ Check for updates and create a PR:
 
 ```yaml
 - name: Update accessories
-  uses: robfrank/kamal-accessories-updater@v1
+  uses: robfrank/kamal-accessories-updater@v25
   with:
     config-dir: config
     pr-branch: dependencies/kamal-accessories
@@ -195,7 +195,7 @@ accessories:
 
 ```yaml
 - name: Update accessories
-  uses: robfrank/kamal-accessories-updater@v1
+  uses: robfrank/kamal-accessories-updater@v25
   with:
     config-dir: config
   env:
