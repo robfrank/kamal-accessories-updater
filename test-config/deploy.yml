@@ -1,0 +1,4 @@
+accessories:
+  redis:
+    image: redis:8.4.0@sha256:4d344fd752d4ec85e71bb40b5dedc95d1c7bd2b947f002498dfbf68d78a43c30
+    host: localhost
